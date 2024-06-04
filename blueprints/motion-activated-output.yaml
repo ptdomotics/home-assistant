@@ -244,5 +244,5 @@ action:
                 sequence:
                   - scene: !input scene_no_sense
             default:
-              - service: homeassistant.turn_on
+              - service: homeassistant.turn_off
                 target: !input output_target
