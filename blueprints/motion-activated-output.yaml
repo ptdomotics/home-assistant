@@ -28,7 +28,9 @@ blueprint:
       selector:
         target:
           entity:
-            domain: light, switch
+            domain:
+              - light
+              - switch
     no_sense_wait:
       name: Wait time
       description: Time to leave the output "on" after last sense is detected.
