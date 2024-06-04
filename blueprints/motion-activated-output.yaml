@@ -1,7 +1,7 @@
 blueprint:
-  name: Sensor Activated Light
+  name: Sensor Activated Output
   description: >
-    Turn on lights or scenes when "sensor" is detected.
+    Turn on output when sensor is detected.
 
     Four different scenes can be defined depending on time of day.
 
@@ -15,7 +15,7 @@ blueprint:
      - Default scene when sense stops (optional)
      - “no sense blocker” with user choosable state (optional)
   domain: automation
-  source_url: https://github.com/ptdomotics/home-assistant.git/blueprints/sensor-activated-light.yaml
+  source_url: https://github.com/ptdomotics/home-assistant.git/blueprints/sensor-activated-output.yaml
   author: PTDomotics
   input:
     sense_entity:
@@ -23,15 +23,15 @@ blueprint:
       description: Trigger Sensor (anything switching between "on" and "off")
       selector:
         entity:
-    light_target:
-      name: Light
+    output_target:
+      name: Output
       selector:
         target:
           entity:
-            domain: light
+            domain: light, switch
     no_sense_wait:
       name: Wait time
-      description: Time to leave the light on after last sense is detected.
+      description: Time to leave the output "on" after last sense is detected.
       default: 120
       selector:
         number:
@@ -218,8 +218,13 @@ action:
                 sequence:
                   - scene: !input scene_night
             default:
-              - service: light.turn_on
-                target: !input light_target
+              - service: >-
+                  {% if 'light.' in state_attr('!input output_target') %}
+                    light.turn_on
+                  {% elif 'switch.' in state_attr('!input output_target') %}
+                    switch.turn_on
+                  {% endif %}
+                target: !input output_target
       - conditions:
           - condition: template
             value_template: "{{ trigger.to_state.state == 'off' }}"
@@ -242,5 +247,10 @@ action:
                 sequence:
                   - scene: !input scene_no_sense
             default:
-              - service: light.turn_off
-                target: !input light_target
+              - service: >-
+                  {% if 'light.' in state_attr('!input output_target') %}
+                    light.turn_off
+                  {% elif 'switch.' in state_attr('!input output_target') %}
+                    switch.turn_off
+                  {% endif %}
+                target: !input output_target
