@@ -31,6 +31,7 @@ blueprint:
             domain:
               - light
               - switch
+              - script
     no_sense_wait:
       name: Wait time
       description: Time to leave the output "on" after last sense is detected.
