@@ -221,9 +221,9 @@ action:
                   - scene: !input scene_night
             default:
               - service: >-
-                  {% if 'light.' in state_attr('!input output_target') %}
+                  {% if 'light.' in output_entity %}
                     light.turn_on
-                  {% elif 'switch.' in state_attr('!input output_target') %}
+                  {% elif 'switch.' in output_entity %}
                     switch.turn_on
                   {% endif %}
                 target: !input output_target
@@ -250,9 +250,9 @@ action:
                   - scene: !input scene_no_sense
             default:
               - service: >-
-                  {% if 'light.' in state_attr('!input output_target') %}
+                  {% if 'light.' in output_entity %}
                     light.turn_off
-                  {% elif 'switch.' in state_attr('!input output_target') %}
+                  {% elif 'switch.' in output_entity %}
                     switch.turn_off
                   {% endif %}
                 target: !input output_target
