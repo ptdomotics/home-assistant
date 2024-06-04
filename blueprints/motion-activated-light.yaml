@@ -6,7 +6,7 @@ blueprint:
     Four different scenes can be defined depending on time of day.
 
     Features:
-     - Trigger on sense (anything that switches between “on” and off")
+     - Trigger on sense (anything tha  t switches between “on” and off")
      - Wait time for turning off
      - Only run if entity is in desired state (optional)
      - Sun elevation check (optional)
