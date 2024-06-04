@@ -1,13 +1,12 @@
 blueprint:
   name: Sensor Activated Light
   description: >
-    # YAMA V10
-    Turn on lights or scenes when "sensor"" is detected.
+    Turn on lights or scenes when "sensor" is detected.
 
     Four different scenes can be defined depending on time of day.
 
-    Capabilitys:
-     - Trigger on sense (anything that switches between “on” and off")
+    Features:
+     - Trigger on sense (anything th at switches between “on” and off")
      - Wait time for turning off
      - Only run if entity is in desired state (optional)
      - Sun elevation check (optional)
