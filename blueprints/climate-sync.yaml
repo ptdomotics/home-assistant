@@ -1,0 +1,147 @@
+blueprint:
+  name: Sync ACs
+  description: Synchronizes the state of a group of climates
+  domain: automation
+  input:
+    climate_entities:
+      name: Climates
+      description: List of climate entities to sync
+      selector:
+        entity:
+          domain: climate
+          multiple: true
+    tracked_variables:
+      name: Variables
+      description: List of variables to sync
+      default: []
+      selector:
+        select:
+          mode: list
+          multiple: true
+          options:
+            - temperature
+            - preset_mode
+            - fan_mode
+            - swing_mode
+    start_delay:
+      name: Start Delay
+      description: Delay before synchronization starts
+      default: 15
+      selector:
+        number:
+          min: 0
+          max: 120
+          unit_of_measurement: seconds
+    max_end_delay:
+      name: Max End Delay
+      description: Maximum time to wait for synchronization to end
+      default: 30
+      selector:
+        number:
+          min: 0
+          max: 120
+          unit_of_measurement: seconds
+
+variables:
+  climate_entities: !input "climate_entities"
+  tracked_variables: !input "tracked_variables"
+  start_delay: !input "start_delay"
+  max_end_delay: !input "max_end_delay"
+
+trigger:
+  - platform: state
+    entity_id: !input climate_entities
+    from: null
+    to: null
+  - platform: state
+    entity_id: !input climate_entities
+    attribute: temperature
+  - platform: state
+    entity_id: !input climate_entities
+    attribute: fan_mode
+  - platform: state
+    entity_id: !input climate_entities
+    attribute: preset_mode
+  - platform: state
+    entity_id: !input climate_entities
+    attribute: swing_mode
+
+condition:
+  - condition: template
+    value_template: >
+      {% set should_run = false %}
+      {% if trigger.to_state.state != trigger.from_state.state %}
+        {% set should_run = true %}
+      {% endif %}
+      {% if 'temperature' in tracked_variables and trigger.attribute == 'temperature' %}
+        {% set should_run = true %}
+      {% endif %}
+      {% if 'fan_mode' in tracked_variables and trigger.attribute == 'fan_mode' %}
+        {% set should_run = true %}
+      {% endif %}
+      {% if 'preset_mode' in tracked_variables and trigger.attribute == 'preset_mode' %}
+        {% set should_run = true %}
+      {% endif %}
+      {% if 'swing_mode' in tracked_variables and trigger.attribute == 'swing_mode' %}
+        {% set should_run = true %}
+      {% endif %}
+      {{ should_run }}
+
+action:
+  - delay: !input start_delay
+  - service: automation.turn_off
+    data:
+      stop_actions: false
+    target:
+      entity_id: "{{ this.entity_id }}"
+  - variables:
+      other_entities: "{{ expand(climate_entities) | rejectattr('entity_id', 'eq', trigger.entity_id) | map(attribute='entity_id') | list }}"
+      hvac_mode: "{{ states(trigger.entity_id) }}"
+      temperature: "{{ 'temperature' in tracked_variables and state_attr(trigger.entity_id, 'temperature') or none }}"
+      preset_mode: "{{ 'preset_mode' in tracked_variables and state_attr(trigger.entity_id, 'preset_mode') or none }}"
+      fan_mode: "{{ 'fan_mode' in tracked_variables and state_attr(trigger.entity_id, 'fan_mode') or none }}"
+      swing_mode: "{{ 'swing_mode' in tracked_variables and state_attr(trigger.entity_id, 'swing_mode') or none }}"
+  - repeat:
+      count: "{{ other_entities | count }}"
+      sequence:
+        - variables:
+            climate: "{{ other_entities[repeat.index - 1] }}"
+            attributes: >
+              {
+                "state": "{{ hvac_mode }}",
+                {% if temperature is not none %}"temperature": "{{ temperature }}",{% endif %}
+                {% if preset_mode is not none %}"preset_mode": "{{ preset_mode }}",{% endif %}
+                {% if fan_mode is not none %}"fan_mode": "{{ fan_mode }}",{% endif %}
+                {% if swing_mode is not none %}"swing_mode": "{{ swing_mode }}"{% endif %}
+              }
+        - service: scene.apply
+          data:
+            entities:
+              "{{ climate }}": "{{ attributes }}"
+  - wait_template: |
+      {% set all_states_match = true %}
+      {% for entity in other_entities %}
+        {% if states(entity) != hvac_mode %}
+          {% set all_states_match = false %}
+        {% endif %}
+        {% if 'temperature' in tracked_variables and state_attr(entity, 'temperature') != temperature %}
+          {% set all_states_match = false %}
+        {% endif %}
+        {% if 'preset_mode' in tracked_variables and state_attr(entity, 'preset_mode') != preset_mode %}
+          {% set all_states_match = false %}
+        {% endif %}
+        {% if 'fan_mode' in tracked_variables and state_attr(entity, 'fan_mode') != fan_mode %}
+          {% set all_states_match = false %}
+        {% endif %}
+        {% if 'swing_mode' in tracked_variables and state_attr(entity, 'swing_mode') != swing_mode %}
+          {% set all_states_match = false %}
+        {% endif %}
+      {% endfor %}
+      {{ all_states_match }}
+    timeout: !input max_end_delay
+    continue_on_timeout: true
+  - service: automation.turn_on
+    target:
+      entity_id: "{{ this.entity_id }}"
+
+mode: restart
